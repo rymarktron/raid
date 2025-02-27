@@ -12,27 +12,38 @@ export function ChatbotInterface() {
     e.preventDefault()
 
     if (userInput.trim()) {
+      // Log the user input before sending
+      console.log("User input submitted:", userInput);
+
       // Add user message to the conversation
       setMessages([...messages, { text: userInput, sender: 'user' }])
-
-      // Clear the input field
       setUserInput('')
 
       try {
+        // Log the start of the fetch request
+        console.log("Sending request to API...");
+
         // Send the message to the API with the Authentication header and API key
-        const response = await fetch('https://api.joseph.ma/raid/chat?api_key=RYMARK', {
+        const response = await fetch('https://api.joseph.ma/raid/chat', {
           method: 'POST',
           headers: {
+            'Authorization': 'RYMARK',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ messages: [{ role: 'user', content: userInput }] }),
         })
+
+        // Check if response is okay and log it
+        console.log("API response status:", response.status);
 
         if (!response.ok) {
           throw new Error('Failed to fetch response from API')
         }
 
         const data = await response.json()
+
+        // Log the received data from the API
+        console.log("Received data from API:", data);
 
         // Append the response message from the bot
         setMessages((prevMessages) => [
@@ -41,7 +52,6 @@ export function ChatbotInterface() {
         ])
       } catch (error) {
         console.error('Error sending message to API:', error)
-        // Optionally handle errors in the UI (e.g., show an error message)
       }
     }
   }
@@ -58,10 +68,8 @@ export function ChatbotInterface() {
           </p>
         </div>
         
-        {/* Chatbox container */}
         <div className="mt-12 bg-white p-6 rounded-lg shadow-xl max-w-xl mx-auto">
           <div className="h-72 overflow-y-auto mb-4 p-4 bg-gray-100 rounded-lg space-y-4">
-            {/* Display chat messages */}
             {messages.map((message, index) => (
               <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
@@ -73,7 +81,6 @@ export function ChatbotInterface() {
             ))}
           </div>
           
-          {/* Input form */}
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
               type="text"
