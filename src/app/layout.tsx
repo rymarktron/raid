@@ -7,10 +7,10 @@ import '@/styles/tailwind.css'
 export const metadata: Metadata = {
   title: {
     template: '%s - Team RAID, Waterloo Capstone',
-    default: 'Team RAID, Waterloo Capstone - Accounting made simple for small businesses',
+    default: 'Team RAID, Waterloo Capstone - HR Tier 0 Questions answered simply and accurately',
   },
   description:
-    'Most bookkeeping software is accurate, but hard to use. We make the opposite trade-off, and hope you don’t get audited.',
+    'HR Tier 0 Questions answered simply and accurately.',
 }
 
 const inter = Inter({
