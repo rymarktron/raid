@@ -8,28 +8,45 @@ export function ChatbotInterface() {
   const [userInput, setUserInput] = useState('')
   const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'bot' }[]>([])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (userInput.trim()) {
       // Add user message to the conversation
       setMessages([...messages, { text: userInput, sender: 'user' }])
-      
+
       // Clear the input field
       setUserInput('')
-      
-      // Simulate bot response after a delay
-      setTimeout(() => {
+
+      try {
+        // Send the message to the API with the Authentication header and API key
+        const response = await fetch('https://api.joseph.ma/raid/chat?api_key=RYMARK', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ messages: [{ role: 'user', content: userInput }] }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch response from API')
+        }
+
+        const data = await response.json()
+
+        // Append the response message from the bot
         setMessages((prevMessages) => [
           ...prevMessages,
-          { text: `You said: ${userInput}`, sender: 'bot' }, // Simulated bot response
+          { text: data.message, sender: 'bot' },
         ])
-      }, 1000)
+      } catch (error) {
+        console.error('Error sending message to API:', error)
+        // Optionally handle errors in the UI (e.g., show an error message)
+      }
     }
   }
 
   return (
-
     <section id="chatbot" aria-label="chatbot" className="pt-20 pb-14 sm:pt-32 sm:pb-20 lg:pb-32 bg-gray-50">
       <Container>
         <div className="mx-auto max-w-2xl md:text-center">
@@ -48,7 +65,7 @@ export function ChatbotInterface() {
             {messages.map((message, index) => (
               <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className={`max-w-xs px-4 py-2 rounded-lg ${message.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-black'}`}
+                  className={`max-w-xs px-4 py-2 rounded-lg ${message.sender === 'user' ? 'bg-purple-500 text-white' : 'bg-gray-300 text-black'}`}
                 >
                   {message.text}
                 </div>

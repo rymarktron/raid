@@ -10,6 +10,7 @@
   },
   "browserslist": "defaults, not ie <= 11",
   "dependencies": {
+    "@ai-sdk/react": "^1.1.18",
     "@headlessui/react": "^2.1.0",
     "@tailwindcss/forms": "^0.5.3",
     "@tailwindcss/postcss": "^4.0.6",
