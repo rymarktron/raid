@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Container } from '@/components/Container';
 import { Button } from './Button';
+import Link from 'next/link';
 
 export function ChatbotInterface() {
   const [userInput, setUserInput] = useState('');
@@ -105,7 +106,7 @@ export function ChatbotInterface() {
         console.error('Error sending message to API:', error);
         setMessages((prevMessages) => [
           ...prevMessages,
-          { text: 'An error occurred while processing your request.', sender: 'bot' },
+          { text: 'An error occurred while processing your request. Please send a message again.', sender: 'bot' },
         ]);
       } finally {
         setLoading(false);
@@ -122,16 +123,16 @@ export function ChatbotInterface() {
           </h2>
           <p className="mt-4 text-lg tracking-tight text-slate-700">
             Ask anything, and our chatbot will help you out! Please try to ask questions related to HR department so we can help you the best we can. If that doesn't work, please email:
-            <Button href="mailto:hrhelp@uwaterloo.ca" className='ml-2'>hrhelp@uwaterloo.ca</Button>
+            <Link href="mailto:hrhelp@uwaterloo.ca" className='ml-2 text-purple-700'>hrhelp@uwaterloo.ca</Link>
           </p>
         </div>
         
         <div className="mt-12 bg-white p-6 rounded-lg shadow-xl max-w-4xl mx-auto">
-        <div className="h-102 overflow-y-auto mb-4 p-4 bg-gray-100 rounded-lg space-y-4">
+        <div className="h-120 overflow-y-auto mb-4 p-4 bg-gray-100 rounded-lg space-y-4">
           {messages.map((message, index) => (
             <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-xs px-4 py-2 rounded-lg ${message.sender === 'user' ? 'bg-purple-500 text-white' : 'bg-gray-300 text-black'}`}
+                className={`max-w-xl px-4 py-2 rounded-lg ${message.sender === 'user' ? 'bg-purple-700 text-white' : 'bg-gray-300 text-black'}`}
                 dangerouslySetInnerHTML={{ __html: formatTextWithLinks(message.text) }} // Apply link formatting
               />
             </div>
