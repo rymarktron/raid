@@ -121,28 +121,29 @@ export function ChatbotInterface() {
             Chat with Us
           </h2>
           <p className="mt-4 text-lg tracking-tight text-slate-700">
-            Ask anything, and our chatbot will help you out! Please try to ask questions related to HR department so we can help you the best we can.
+            Ask anything, and our chatbot will help you out! Please try to ask questions related to HR department so we can help you the best we can. If that doesn't work, please email:
+            <Button href="mailto:hrhelp@uwaterloo.ca" className='ml-2'>hrhelp@uwaterloo.ca</Button>
           </p>
         </div>
         
         <div className="mt-12 bg-white p-6 rounded-lg shadow-xl max-w-4xl mx-auto">
         <div className="h-102 overflow-y-auto mb-4 p-4 bg-gray-100 rounded-lg space-y-4">
-  {messages.map((message, index) => (
-    <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-xs px-4 py-2 rounded-lg ${message.sender === 'user' ? 'bg-purple-500 text-white' : 'bg-gray-300 text-black'}`}
-        dangerouslySetInnerHTML={{ __html: formatTextWithLinks(message.text) }} // Apply link formatting
-      />
-    </div>
-  ))}
+          {messages.map((message, index) => (
+            <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-xs px-4 py-2 rounded-lg ${message.sender === 'user' ? 'bg-purple-500 text-white' : 'bg-gray-300 text-black'}`}
+                dangerouslySetInnerHTML={{ __html: formatTextWithLinks(message.text) }} // Apply link formatting
+              />
+            </div>
+          ))}
 
-  {loading && (
-    <div className="flex justify-center">
-      {/* CSS Spinner */}
-      <div className="w-16 h-16 border-4 border-t-4 border-gray-300 border-t-purple-500 rounded-full animate-spin"></div>
-    </div>
-  )}
-</div>
+          {loading && (
+            <div className="flex justify-center">
+              {/* CSS Spinner */}
+              <div className="w-16 h-16 border-4 border-t-4 border-gray-300 border-t-purple-500 rounded-full animate-spin"></div>
+            </div>
+          )}
+        </div>
                   
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
