@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Container } from '@/components/Container'
 import { Button } from './Button'
+import Link from 'next/link'; // Import Link from Next.js
 
 export function ChatbotInterface() {
   const [userInput, setUserInput] = useState('')
@@ -10,29 +11,25 @@ export function ChatbotInterface() {
   const [loading, setLoading] = useState(false)
 
   // Function to extract links and format them
-  const formatTextWithLinks = (text: string) => {
-    // Regex to match URLs in the text
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const links = [];
+  // Function to extract links and format them
+// Function to extract links and format them
+const formatTextWithLinks = (text: string) => {
+  // Regex to match URLs in the text
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  let formattedText = text;
 
-    // Find all URLs in the text
-    let match;
-    while ((match = urlRegex.exec(text)) !== null) {
-      // For each URL found, replace it with a clickable link
-      const url = match[0];
-      const linkText = `**${url}**`; // Bold the link text
-      links.push({ url, text: linkText });
+  // Replace the links in the text with the actual formatted link
+  formattedText = formattedText.replace(urlRegex, (url) => {
+    // Check if the URL is internal (i.e., it's part of the same domain)
+    if (url.startsWith('https://uwaterloo.ca')) {
+      return `<a href="${url}" style="color: purple; font-weight: bold; text-decoration: underline;">${url}</a>`; // Apply purple, bold, and underline for internal URLs
+    } else {
+      return `<a href="${url}" target="_blank" style="color: purple; font-weight: bold; text-decoration: underline;">${url}</a>`; // Apply purple, bold, and underline for external URLs
     }
+  });
 
-    // Replace the links in the text with the actual formatted link
-    let formattedText = text;
-    links.forEach(link => {
-      const linkHTML = `<strong><a href="${link.url}" target="_blank">${link.text}</a></strong>`;
-      formattedText = formattedText.replace(link.text, linkHTML);
-    });
-
-    return formattedText;
-  }
+  return formattedText;
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,34 +128,34 @@ export function ChatbotInterface() {
             Chat with Us
           </h2>
           <p className="mt-4 text-lg tracking-tight text-slate-700">
-            Ask anything, and our chatbot will help you out!
+            Ask anything, and our chatbot will help you out! Please try to ask questions related to HR department so we can help you the best we can.
           </p>
         </div>
         
         <div className="mt-12 bg-white p-6 rounded-lg shadow-xl max-w-4xl mx-auto">
-          <div className="h-102 overflow-y-auto mb-4 p-4 bg-gray-100 rounded-lg space-y-4">
-            {messages.map((message, index) => (
-              <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-lg ${message.sender === 'user' ? 'bg-purple-500 text-white' : 'bg-gray-300 text-black'}`}
-                  dangerouslySetInnerHTML={{ __html: message.text }} // Use `dangerouslySetInnerHTML` to render HTML links
-                />
-              </div>
-            ))}
+        <div className="h-102 overflow-y-auto mb-4 p-4 bg-gray-100 rounded-lg space-y-4">
+  {messages.map((message, index) => (
+    <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`max-w-xs px-4 py-2 rounded-lg ${message.sender === 'user' ? 'bg-purple-500 text-white' : 'bg-gray-300 text-black'}`}
+        dangerouslySetInnerHTML={{ __html: formatTextWithLinks(message.text) }} // Apply link formatting
+      />
+    </div>
+  ))}
 
-            {loading && (
-              <div className="flex justify-center">
-                {/* CSS Spinner */}
-                <div className="w-16 h-16 border-4 border-t-4 border-gray-300 border-t-purple-500 rounded-full animate-spin"></div>
-              </div>
-            )}
-          </div>
-          
+  {loading && (
+    <div className="flex justify-center">
+      {/* CSS Spinner */}
+      <div className="w-16 h-16 border-4 border-t-4 border-gray-300 border-t-purple-500 rounded-full animate-spin"></div>
+    </div>
+  )}
+</div>
+                  
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
               type="text"
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Type your message..."
+              placeholder="Type your question..."
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
             />
