@@ -122,8 +122,8 @@ export function ChatbotInterface() {
             Chat with Us
           </h2>
           <p className="mt-4 text-lg tracking-tight text-slate-700">
-            Ask anything, and our chatbot will help you out! Please try to ask questions related to HR department so we can help you the best we can. If that doesn't work, please email:
-            <Link href="mailto:hrhelp@uwaterloo.ca" className='ml-2 text-purple-700'>hrhelp@uwaterloo.ca</Link>
+            Ask anything, and our chatbot will help you out! Please try to ask questions related to HR department so we can help you the best we can. If that does not work, please email:
+            <Button href="mailto:hrhelp@uwaterloo.ca" className='ml-2'>hrhelp@uwaterloo.ca</Button>
           </p>
         </div>
         
