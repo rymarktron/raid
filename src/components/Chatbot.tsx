@@ -1,124 +1,117 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { Container } from '@/components/Container'
-import { Button } from './Button'
-import Link from 'next/link'; // Import Link from Next.js
+import { useState } from 'react';
+import { Container } from '@/components/Container';
+import { Button } from './Button';
 
 export function ChatbotInterface() {
-  const [userInput, setUserInput] = useState('')
-  const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'bot' }[]>([])
-  const [loading, setLoading] = useState(false)
+  const [userInput, setUserInput] = useState('');
+  const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'bot' }[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Function to extract links and format them
-  // Function to extract links and format them
-// Function to extract links and format them
-const formatTextWithLinks = (text: string) => {
-  // Regex to match URLs in the text
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  let formattedText = text;
+  const formatTextWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    let formattedText = text;
 
-  // Replace the links in the text with the actual formatted link
-  formattedText = formattedText.replace(urlRegex, (url) => {
-    // Check if the URL is internal (i.e., it's part of the same domain)
-    if (url.startsWith('https://uwaterloo.ca')) {
-      return `<a href="${url}" style="color: purple; font-weight: bold; text-decoration: underline;">${url}</a>`; // Apply purple, bold, and underline for internal URLs
-    } else {
-      return `<a href="${url}" target="_blank" style="color: purple; font-weight: bold; text-decoration: underline;">${url}</a>`; // Apply purple, bold, and underline for external URLs
-    }
-  });
+    formattedText = formattedText.replace(urlRegex, (url) => {
+      if (url.startsWith('https://uwaterloo.ca')) {
+        return `<a href="${url}" style="color: purple; font-weight: bold; text-decoration: underline;">${url}</a>`;
+      } else {
+        return `<a href="${url}" target="_blank" style="color: purple; font-weight: bold; text-decoration: underline;">${url}</a>`;
+      }
+    });
 
-  return formattedText;
-};
+    return formattedText;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (userInput.trim()) {
-      // Log the user input before sending
-      console.log("User input submitted:", userInput);
+      console.log('User input submitted:', userInput);
 
-      // Add user message to the conversation
-      setMessages(prevMessages => [...prevMessages, { text: userInput, sender: 'user' }])
-      setUserInput('')
-      setLoading(true)
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { text: userInput, sender: 'user' },
+      ]);
+      setUserInput('');
+      setLoading(true);
 
       try {
-        // Log the start of the fetch request
-        console.log("Sending request to API...");
+        console.log('Sending request to API...');
 
-        // Send the message to the API with the Authentication header and API key
         const response = await fetch('https://api.joseph.ma/raid/chat', {
           method: 'POST',
           headers: {
-            'Authentication': 'RYMARK', // Ensure this matches the value expected by the server
+            Authentication: 'RYMARK',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ messages: [{ role: 'user', content: userInput }] }),
-        })
+        });
 
-        // Log the response status
-        console.log("API response status:", response.status);
+        console.log('API response status:', response.status);
 
         if (!response.ok) {
-          throw new Error('Failed to fetch response from API')
+          throw new Error('Failed to fetch response from API');
         }
 
-        // Check if the response is JSON
-        const contentType = response.headers.get("Content-Type") || "";
-        let responseBody;
+        const contentType = response.headers.get('Content-Type') || '';
+        let responseBody: unknown;
 
-        if (contentType.includes("application/json")) {
-          // If the response is JSON, parse it
+        if (contentType.includes('application/json')) {
           responseBody = await response.json();
-          console.log("Received data from API:", responseBody);
-        } else {
-          // If the response is not JSON, treat it as text
-          responseBody = await response.text();
-          console.log("Received text from API:", responseBody);
-        }
+          console.log('Received data from API:', responseBody);
 
-        // Check if we received the expected message property
-        if (responseBody && typeof responseBody.message === 'string') {
-          // Break the message into chunks (for example, by splitting sentences)
-          const botMessages = responseBody.message.split('.').map((sentence: string) => sentence.trim()).filter(Boolean);
+          if (typeof responseBody === 'object' && responseBody !== null && 'message' in responseBody) {
+            const responseMessage = (responseBody as { message: string }).message;
+            const botMessages = responseMessage
+              .split('.')
+              .map((sentence: string) => sentence.trim())
+              .filter(Boolean);
 
-          // Render the messages slowly
-          for (let i = 0; i < botMessages.length; i++) {
+            for (let i = 0; i < botMessages.length; i++) {
+              setTimeout(() => {
+                setMessages((prevMessages) => [
+                  ...prevMessages,
+                  { text: botMessages[i], sender: 'bot' },
+                ]);
+              }, 1000 * i);
+            }
+
             setTimeout(() => {
+              const formattedMessage = formatTextWithLinks(responseMessage);
               setMessages((prevMessages) => [
                 ...prevMessages,
-                { text: botMessages[i], sender: 'bot' },
-              ])
-            }, 1000 * i); // Add a delay of 1 second between each sentence
-          }
-
-          // Include the links in the message
-          setTimeout(() => {
-            // Format the response with the links and bold them
-            const formattedMessage = formatTextWithLinks(responseBody.message);
+                { text: formattedMessage, sender: 'bot' },
+              ]);
+            }, 1000 * botMessages.length);
+          } else {
             setMessages((prevMessages) => [
               ...prevMessages,
-              {
-                text: formattedMessage,
-                sender: 'bot',
-              },
+              { text: 'Error: No valid message received.', sender: 'bot' },
             ]);
-          }, 1000 * botMessages.length); // Add delay to ensure the last chunk is displayed before adding the links
+          }
         } else {
-          // In case the response is not in the expected format, show as raw text
+          responseBody = await response.text();
+          console.log('Received text from API:', responseBody);
+
+          const responseText = String(responseBody); // Explicitly cast to string
           setMessages((prevMessages) => [
             ...prevMessages,
-            { text: responseBody, sender: 'bot' },
+            { text: responseText, sender: 'bot' },
           ]);
         }
       } catch (error) {
-        console.error('Error sending message to API:', error)
+        console.error('Error sending message to API:', error);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { text: 'An error occurred while processing your request.', sender: 'bot' },
+        ]);
       } finally {
-        setLoading(false) // Stop loading after processing is done
+        setLoading(false);
       }
     }
-  }
+  };
 
   return (
     <section id="chatbot" aria-label="chatbot" className="pt-20 pb-14 sm:pt-32 sm:pb-20 lg:pb-32 bg-gray-50">
@@ -164,5 +157,5 @@ const formatTextWithLinks = (text: string) => {
         </div>
       </Container>
     </section>
-  )
+  );
 }
