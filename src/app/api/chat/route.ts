@@ -1,7 +1,7 @@
-import { anthropic } from '@ai-sdk/anthropic';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
-import { searchSimilarContent } from '@/utils/utils';
+import { getAllResults, searchSimilarContent } from "@/utils/utils";
+import { anthropic } from "@ai-sdk/anthropic";
+import { streamText, tool } from "ai";
+import { z } from "zod";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 60;
@@ -9,11 +9,11 @@ export const maxDuration = 60;
 export async function GET(request: Request) {
   // You can access query parameters if needed
   const { searchParams } = new URL(request.url);
-  
+
   // Your logic here to handle the request
   // Example response:
-  return Response.json({ 
-    message: "This is the chat API endpoint" 
+  return Response.json({
+    message: "This is the chat API endpoint",
   });
 }
 
@@ -21,8 +21,9 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20240620'),
-    system: "You are a helpful assistant with access to a knowledge base. Use the searchKnowledgeBase tool to find relevant information when needed. When citing a source make sure to include a citation like [1] and cite at the end like [1] [<name>](<url>), Last updated: <Last scraped date and time like April 1st 2024, 12:00 PM>. If the user's message is sad or more sensitive, be more sensitive and caring.",
+    model: anthropic("claude-3-5-sonnet-20240620"),
+    system:
+      "You are a helpful assistant with access to a knowledge base. Use the searchKnowledgeBase tool to find relevant information when needed. When citing a source make sure to include a citation like [1] and cite at the end like [1] [<name>](<url>), Last updated: <Last scraped date and time like April 1st 2024, 12:00 PM>. If the user's message is sad or more sensitive, be more sensitive and caring. Do not say \"Thank you for your question\" when returning search results. You can say `--` to split up your response into multiple messages. You should do this if the message is long or if the user asks for a list of items.",
     messages,
     tools: {
       searchKnowledgeBase: tool({
@@ -31,11 +32,14 @@ export async function POST(req: Request) {
           query: z
             .string()
             .describe("The search query to find relevant information"),
+          count: z
+            .number()
+            .describe("The number of results to return"),
         }),
-        execute: async ({ query }) => {
+        execute: async ({ query, count }) => {
           console.log(`Searching knowledge base for: ${query}`);
           try {
-            const results = await searchSimilarContent(query, 3);
+            const results = await searchSimilarContent(query, count);
 
             if (results.length === 0) {
               return {
@@ -63,6 +67,15 @@ export async function POST(req: Request) {
               message: "Error searching the knowledge base.",
             };
           }
+        },
+      }),
+      getAllResults: tool({
+        description: "Get all results from the knowledge base",
+        parameters: z.object({
+        }),
+        execute: async () => {
+          const results = await getAllResults();
+          return results;
         },
       }),
     },

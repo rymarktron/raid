@@ -1,14 +1,14 @@
-import { type Metadata } from 'next'
-import Link from 'next/link'
+import type { Metadata } from "next";
+import Link from "next/link";
 
-import { Button } from '@/components/Button'
-import { TextField } from '@/components/Fields'
-import { Logo } from '@/components/Logo'
-import { SlimLayout } from '@/components/SlimLayout'
+import { Button } from "@/components/Button";
+import { TextField } from "@/components/Fields";
+import { Logo } from "@/components/Logo";
+import { SlimLayout } from "@/components/SlimLayout";
 
 export const metadata: Metadata = {
-  title: 'Sign In',
-}
+  title: "Sign In",
+};
 
 export default function Login() {
   return (
@@ -22,13 +22,13 @@ export default function Login() {
         Sign in to your account
       </h2>
       <p className="mt-2 text-sm text-gray-700">
-        Don’t have an account?{' '}
+        Don’t have an account?{" "}
         <Link
           href="/register"
           className="font-medium text-purple-900 hover:underline"
         >
           Sign up
-        </Link>{' '}
+        </Link>{" "}
         for a free trial.
       </p>
       <form action="#" className="mt-10 grid grid-cols-1 gap-y-8">
@@ -47,7 +47,12 @@ export default function Login() {
           required
         />
         <div>
-          <Button type="submit" variant="solid" color="purple" className="w-full">
+          <Button
+            type="submit"
+            variant="solid"
+            color="purple"
+            className="w-full"
+          >
             <span>
               Sign in <span aria-hidden="true">&rarr;</span>
             </span>
@@ -55,5 +60,5 @@ export default function Login() {
         </div>
       </form>
     </SlimLayout>
-  )
+  );
 }

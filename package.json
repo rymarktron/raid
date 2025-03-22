@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "format": "biome check --write"
   },
   "browserslist": "defaults, not ie <= 11",
   "dependencies": {
@@ -29,6 +30,7 @@
     "typescript": "^5.3.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "eslint": "^8.56.0",
     "eslint-config-next": "^14.0.4",
     "prettier": "^3.3.2",

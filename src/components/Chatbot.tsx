@@ -1,10 +1,10 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
 import { Container } from "@/components/Container";
-import { Button } from "./Button";
+import { useChat } from "@ai-sdk/react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
-import { useState, useEffect } from "react";
+import { Button } from "./Button";
 
 // Search Results component to display search results as tiles
 const SearchResults = ({ results }: { results: any[] }) => {
@@ -15,25 +15,25 @@ const SearchResults = ({ results }: { results: any[] }) => {
   };
 
   return (
-    <div className="flex flex-col w-full my-4 mx-auto bg-gray-200 rounded-lg p-4 max-w-xl">
-      <div className="text-sm text-gray-500 mb-2 text-center">Search results found:</div>
-      <div className="space-y-2">
+    <div className="flex flex-col w-3/4 text-sm mx-auto">
+      <div className="text-xs text-gray-500">Search results found:</div>
+      <div className="space-y-1.5">
         {results.map((result, index) => (
           <a 
             key={index} 
             href={result.url} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="block p-3 bg-white hover:bg-blue-50 rounded-lg border border-gray-200 transition-colors duration-200"
+            className="block p-2 bg-white hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors duration-200"
           >
-            <div className="prose prose-sm max-w-none mb-2">
+            <div className="prose prose-xs max-w-none mb-1.5 text-xs">
               <ReactMarkdown>
                 {truncateContent(result.content)}
               </ReactMarkdown>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-blue-600 hover:underline">{result.url}</span>
-              <span className="text-gray-500">Last scraped: {result.last_scraped}</span>
+              <span className="text-gray-500">Last scraped: {new Date(result.last_scraped).toLocaleString()}</span>
             </div>
           </a>
         ))}
@@ -42,9 +42,140 @@ const SearchResults = ({ results }: { results: any[] }) => {
   );
 };
 
+// Custom hook to create ordered chat elements with search results in correct position
+function useOrderedChatElements(originalMessages: any[]) {
+  type ChatItemType = {
+    type: 'message' | 'search-results';
+    id: string;
+    content: any;
+  };
+  
+  const [chatElements, setChatElements] = useState<ChatItemType[]>([]);
+  
+  useEffect(() => {
+    // Process messages to create ordered elements
+    const newChatElements: ChatItemType[] = [];
+    
+    originalMessages.forEach((message: any) => {
+      // If it's an assistant message with parts, look for search results
+      if (message.role === 'assistant' && message.parts) {
+        // Find tool invocation parts
+        const toolParts = message.parts.filter((part: any) => 
+          part.type === 'tool-invocation'
+        );
+        
+        // Find text parts
+        const textParts = message.parts.filter((part: any) => 
+          part.type === 'text'
+        );
+        
+        // If there are tool invocation parts, we need to split the message
+        if (toolParts.length > 0) {
+          // Extract search results from tool result parts
+          const searchResults = toolParts
+            .filter((part: any) => 
+              part.toolInvocation.state === 'result' && 
+              part.toolInvocation.result?.found === true
+            )
+            .flatMap((part: any) => part.toolInvocation.result.results || []);
+          
+          // Split text parts into before-tool and after-tool
+          // We'll consider the position of parts in the array to determine order
+          if (textParts.length > 0) {
+            // Find indices of all parts
+            const allPartsWithIndices = message.parts.map((part: any, idx: number) => ({part, idx}));
+            
+            // Find first tool part index
+            const firstToolIndex = allPartsWithIndices.find(
+              (p: any) => p.part.type === 'tool-invocation'
+            )?.idx || 0;
+            
+            // Find text parts before tool invocation
+            const textPartsBeforeTool = textParts.filter((part: any) => {
+              const partIndex = allPartsWithIndices.find((p: any) => p.part === part)?.idx || 0;
+              return partIndex < firstToolIndex;
+            });
+            
+            // Find text parts after tool invocation and results
+            const lastToolIndex = allPartsWithIndices
+              .filter((p: any) => p.part.type === 'tool-invocation')
+              .reduce((max: number, p: any) => Math.max(max, p.idx), 0);
+            
+            const textPartsAfterTool = textParts.filter((part: any) => {
+              const partIndex = allPartsWithIndices.find((p: any) => p.part === part)?.idx || 0;
+              return partIndex > lastToolIndex;
+            });
+            
+            // 1. Add the "before tool" message
+            if (textPartsBeforeTool.length > 0) {
+              newChatElements.push({
+                type: 'message',
+                id: `${message.id}-before`,
+                content: {
+                  ...message,
+                  parts: textPartsBeforeTool,
+                  _processed: true
+                }
+              });
+            }
+            
+            // 2. Add search results in the middle
+            if (searchResults.length > 0) {
+              newChatElements.push({
+                type: 'search-results',
+                id: `${message.id}-results`,
+                content: searchResults
+              });
+            }
+            
+            // 3. Add the "after tool" message
+            if (textPartsAfterTool.length > 0) {
+              newChatElements.push({
+                type: 'message',
+                id: `${message.id}-after`,
+                content: {
+                  ...message,
+                  parts: textPartsAfterTool,
+                  _processed: true
+                }
+              });
+            }
+          } else if (searchResults.length > 0) {
+            // Just add search results if there are no text parts
+            newChatElements.push({
+              type: 'search-results',
+              id: `${message.id}-results`,
+              content: searchResults
+            });
+          }
+        } else {
+          // No tool parts, add message as is
+          newChatElements.push({
+            type: 'message',
+            id: message.id,
+            content: message
+          });
+        }
+      } else {
+        // Non-assistant messages or those without parts just pass through
+        newChatElements.push({
+          type: 'message',
+          id: message.id,
+          content: message
+        });
+      }
+    });
+    
+    setChatElements(newChatElements);
+  }, [originalMessages]);
+  
+  return chatElements;
+}
+
 export function ChatbotInterface() {
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   
   const { messages, input, handleInputChange, handleSubmit, status } =
     useChat({
@@ -58,42 +189,91 @@ export function ChatbotInterface() {
         }
       ]
     });
-
+    
+  // Process messages to create ordered elements
+  const chatElements = useOrderedChatElements(messages);
+  
+  // Auto-scroll to bottom when new messages come in
+  useEffect(() => {
+    if (!chatContainerRef.current) return;
+    
+    const container = chatContainerRef.current;
+    
+    // If the user hasn't manually scrolled up, scroll to bottom
+    if (!userHasScrolled) {
+      scrollToBottom();
+    }
+    
+    // Function to scroll to bottom smoothly
+    function scrollToBottom() {
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+  }, [chatElements, userHasScrolled]);
+  
+  // Track scroll position to determine if user has manually scrolled up
+  const handleScroll = useCallback(() => {
+    if (!chatContainerRef.current) return;
+    
+    const container = chatContainerRef.current;
+    const isScrolledToBottom = 
+      Math.abs(container.scrollHeight - container.clientHeight - container.scrollTop) < 20;
+    
+    // If user scrolled to bottom, reset the userHasScrolled flag
+    if (isScrolledToBottom) {
+      setUserHasScrolled(false);
+    } 
+    // If user scrolled up, set the flag
+    else if (!userHasScrolled) {
+      setUserHasScrolled(true);
+    }
+  }, [userHasScrolled]);
+  
   // Detect tool usage by monitoring messages
   useEffect(() => {
     // Find the last message
     const lastMessage = messages[messages.length - 1];
-    
+
     // Check if it's an assistant message that might be using tools
-    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.parts) {
+    if (lastMessage && lastMessage.role === "assistant" && lastMessage.parts) {
       // Look for active tool calls (state 'call' or 'partial-call')
-      const hasActiveToolCall = lastMessage.parts.some(part => 
-        part.type === 'tool-invocation' && 
-        (part.toolInvocation.state === 'call' || part.toolInvocation.state === 'partial-call')
+      const hasActiveToolCall = lastMessage.parts.some(
+        (part) =>
+          part.type === "tool-invocation" &&
+          (part.toolInvocation.state === "call" ||
+            part.toolInvocation.state === "partial-call"),
       );
-      
+
       // Set searching state based on whether there are active tool calls
       setIsSearching(hasActiveToolCall);
-      
+
       // Check for search results
       const foundResults = lastMessage.parts
-        .filter((part: any) => 
-          part.type === 'tool-invocation' && 
-          part.toolInvocation.state === 'result' && 
-          part.toolInvocation.result?.found === true && 
-          Array.isArray(part.toolInvocation.result?.results)
+        .filter(
+          (part: any) =>
+            part.type === "tool-invocation" &&
+            part.toolInvocation.state === "result" &&
+            part.toolInvocation.result?.found === true &&
+            Array.isArray(part.toolInvocation.result?.results),
         )
-        .map((part: any) => part.toolInvocation.result.results)
-        .flat();
-      
+        .flatMap((part: any) => part.toolInvocation.result.results);
+
       if (foundResults.length > 0) {
-        setSearchResults(foundResults);
+        // Set search results
+        // Note: This is handled by the useOrderedChatElements hook
       }
-      
+
       // Debug info
       if (hasActiveToolCall) {
         console.log("Tool call in progress, showing searching indicator");
-      } else if (lastMessage.parts.some(part => part.type === 'tool-invocation' && part.toolInvocation.state === 'result')) {
+      } else if (
+        lastMessage.parts.some(
+          (part) =>
+            part.type === "tool-invocation" &&
+            part.toolInvocation.state === "result",
+        )
+      ) {
         console.log("Tool call completed, hiding searching indicator");
       }
     }
@@ -101,8 +281,8 @@ export function ChatbotInterface() {
 
   // Reset searching state when status changes to 'ready'
   useEffect(() => {
-    if (status === 'ready' && isSearching) {
-      console.log('Status changed to ready, resetting searching state');
+    if (status === "ready" && isSearching) {
+      console.log("Status changed to ready, resetting searching state");
       setIsSearching(false);
     }
   }, [status, isSearching]);
@@ -114,9 +294,8 @@ export function ChatbotInterface() {
     formattedText = formattedText.replace(urlRegex, (url) => {
       if (url.startsWith("https://uwaterloo.ca")) {
         return `<a href="${url}" style="color: purple; font-weight: bold; text-decoration: underline;">${url}</a>`;
-      } else {
-        return `<a href="${url}" target="_blank" style="color: purple; font-weight: bold; text-decoration: underline;">${url}</a>`;
       }
+      return `<a href="${url}" target="_blank" style="color: purple; font-weight: bold; text-decoration: underline;">${url}</a>`;
     });
 
     return formattedText;
@@ -128,117 +307,133 @@ export function ChatbotInterface() {
   };
 
   // Render message content based on part type
-  const renderMessageParts = (message: any) => {
-    // Don't render tool invocation result parts as they will be shown separately
-    const shouldExcludeMessage = message.parts?.some((part: any) => 
-      part.type === 'tool-invocation' && 
-      part.toolInvocation.state === 'result' && 
-      part.toolInvocation.result?.found === true && 
-      part.toolInvocation.result?.results
-    );
-
-    if (shouldExcludeMessage) {
-      // Get only text parts from this message
-      const textParts = message.parts?.filter((part: any) => part.type === 'text');
-      
-      // If there are no text parts, don't render this message
-      if (!textParts || textParts.length === 0) {
-        return null;
-      }
+  const renderMessageContent = (message: any) => {
+    // Check if the message has parts property
+    if (message.parts && message.parts.length > 0) {
+      return (
+        <div>
+          {message.parts.map((part: any, index: number) => {
+            if (part.type === 'text') {
+              return (
+                <div key={index} className="prose prose-a:text-blue-600 prose-a:underline">
+                  <ReactMarkdown
+                    components={{
+                      a: ({ node, ...props }) => (
+                        <a 
+                          {...props} 
+                          className="text-blue-600 hover:text-blue-800 underline" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                        />
+                      )
+                    }}
+                  >
+                    {part.text}
+                  </ReactMarkdown>
+                </div>
+              );
+            } else if (part.type === 'file' && part.mimeType?.startsWith('image/')) {
+              return (
+                <img 
+                  key={index} 
+                  src={`data:${part.mimeType};base64,${part.data}`} 
+                  alt="Generated image"
+                  className="max-w-full h-auto rounded my-2"
+                />
+              );
+            }
+            // Don't render tool-invocation parts
+            return null;
+          })}
+        </div>
+      );
     }
-    
+
+    // Fallback to rendering just content if no parts
+    return (
+      <div className="prose prose-a:text-blue-600 prose-a:underline">
+        <ReactMarkdown
+          components={{
+            a: ({ node, ...props }) => (
+              <a 
+                {...props} 
+                className="text-blue-600 hover:text-blue-800 underline" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              />
+            )
+          }}
+        >
+          {message.content}
+        </ReactMarkdown>
+      </div>
+    );
+  };
+
+  // Render a chat message bubble
+  const renderMessage = (message: any) => {
     return (
       <div
         key={message.id}
         className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
       >
         <div
-          className={`max-w-xl px-4 py-2 rounded-lg ${message.role === "user" ? "bg-purple-700 text-white" : "bg-gray-300 text-black"}`}
+          className={`max-w-3xl px-4 py-2 rounded-lg ${message.role === "user" ? "bg-purple-900 text-white rounded-br-none" : "bg-gray-300 text-black rounded-bl-none"}`}
         >
-          {/* Check if the message has parts property */}
-          {message.parts && message.parts.length > 0 ? (
-            <div>
-              {message.parts.map((part: any, index: number) => {
-                if (part.type === 'text') {
-                  return (
-                    <div key={index} className="prose prose-a:text-blue-600 prose-a:underline">
-                      <ReactMarkdown
-                        components={{
-                          a: ({ node, ...props }) => (
-                            <a 
-                              {...props} 
-                              className="text-blue-600 hover:text-blue-800 underline" 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                            />
-                          )
-                        }}
-                      >
-                        {part.text}
-                      </ReactMarkdown>
-                    </div>
-                  );
-                } else if (part.type === 'file' && part.mimeType?.startsWith('image/')) {
-                  return (
-                    <img 
-                      key={index} 
-                      src={`data:${part.mimeType};base64,${part.data}`} 
-                      alt="Generated image"
-                      className="max-w-full h-auto rounded my-2"
-                    />
-                  );
-                } 
-                // Don't render tool-invocation parts here
-                return null;
-              })}
-            </div>
-          ) : (
-            // Fallback to rendering just content if no parts
-            <div className="prose prose-a:text-blue-600 prose-a:underline">
-              <ReactMarkdown
-                components={{
-                  a: ({ node, ...props }) => (
-                    <a 
-                      {...props} 
-                      className="text-blue-600 hover:text-blue-800 underline" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                    />
-                  )
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
-            </div>
-          )}
+          {renderMessageContent(message)}
         </div>
       </div>
     );
   };
 
-  // Generate typing indicator animation
-  const TypingIndicator = () => (
+  // Generate typing indicator animation - memoized to prevent re-renders
+  const typingIndicator = useMemo(() => (
     <div className="flex justify-start mt-2">
       <div className="px-4 py-2 bg-gray-200 rounded-lg flex items-center space-x-1">
-        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></div>
-        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '400ms' }}></div>
+        <div
+          className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+          style={{ animationDelay: "0ms" }}
+        />
+        <div
+          className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+          style={{ animationDelay: "200ms" }}
+        />
+        <div
+          className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+          style={{ animationDelay: "400ms" }}
+        />
       </div>
     </div>
-  );
+  ), []);
 
-  // Searching indicator
-  const SearchingIndicator = () => (
+  // Searching indicator - memoized to prevent re-renders
+  const searchingIndicator = useMemo(() => (
     <div className="flex justify-start mt-2">
       <div className="px-4 py-1 bg-blue-50 text-xs text-blue-700 rounded-lg flex items-center">
-        <svg className="animate-spin h-3 w-3 mr-2 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <svg
+          className="animate-spin h-3 w-3 mr-2 text-blue-600"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          />
         </svg>
         Searching knowledge base...
       </div>
     </div>
-  );
+  ), []);
 
   return (
     <section
@@ -261,22 +456,27 @@ export function ChatbotInterface() {
           </p>
         </div>
 
-        <div className="mt-12 bg-white p-6 rounded-lg shadow-xl max-w-4xl mx-auto">
-          <div className="h-120 overflow-y-auto mb-4 p-4 bg-gray-100 rounded-lg space-y-4">
-            {messages.map(renderMessageParts)}
-            
-            {/* Display search results separately */}
-            {searchResults.length > 0 && (
-              <div className="flex justify-center w-full">
-                <SearchResults results={searchResults} />
-              </div>
-            )}
+        <div className="mt-12 bg-white p-6 rounded-lg shadow-xl">
+          <div 
+            ref={chatContainerRef}
+            onScroll={handleScroll}
+            className="h-160 overflow-y-auto mb-4 p-4 bg-gray-100 rounded-lg space-y-4"
+          >
+            {/* Render chat elements in order */}
+            {chatElements.map((element) => {
+              if (element.type === 'message') {
+                return renderMessage(element.content);
+              } else if (element.type === 'search-results') {
+                return <SearchResults key={element.id} results={element.content} />;
+              }
+              return null;
+            })}
 
             {/* Show typing indicator when streaming response */}
-            {status === 'streaming' && !isSearching && <TypingIndicator />}
+            {status === 'streaming' && !isSearching && typingIndicator}
             
             {/* Show searching indicator when tool is being used */}
-            {isSearching && <SearchingIndicator />}
+            {isSearching && searchingIndicator}
           </div>
 
           <form onSubmit={handleFormSubmit} className="flex gap-2">
@@ -286,10 +486,10 @@ export function ChatbotInterface() {
               placeholder="Type your question..."
               value={input}
               onChange={handleInputChange}
-              disabled={status !== 'ready'}
+              disabled={status !== "ready"}
             />
-            <Button type="submit" disabled={status !== 'ready'}>
-              {status === 'streaming' ? 'Responding...' : 'Send'}
+            <Button type="submit" disabled={status !== "ready"}>
+              {status === "streaming" ? "Responding..." : "Send"}
             </Button>
           </form>
         </div>

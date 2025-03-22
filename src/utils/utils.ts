@@ -21,10 +21,18 @@ async function getAllScrapedContent(): Promise<
   } catch (error) {
     if (error instanceof Error) {
       return { success: false, error: error.message };
-    } else {
-      return { success: false, error: "An unknown error occurred" };
     }
+    return { success: false, error: "An unknown error occurred" };
   }
+}
+
+export async function getAllResults(): Promise<SearchResult[]> {
+  const contentResponse = await getAllScrapedContent();
+  if (!contentResponse.success) {
+    console.error(contentResponse.error);
+    return [];
+  }
+  return contentResponse.data;
 }
 
 /**
@@ -35,7 +43,7 @@ async function getAllScrapedContent(): Promise<
  */
 export async function searchSimilarContent(
   query: string,
-  limit: number = 3,
+  limit = 3,
 ): Promise<SearchResult[]> {
   try {
     // Get all content from the database

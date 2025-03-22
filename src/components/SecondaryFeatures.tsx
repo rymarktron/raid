@@ -1,56 +1,57 @@
-'use client'
+"use client";
 
-import { useId } from 'react'
-import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
-import clsx from 'clsx'
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
+import clsx from "clsx";
+import { useId } from "react";
 
-import { Container } from '@/components/Container'
+import { Container } from "@/components/Container";
 
 interface Feature {
-  name: React.ReactNode
-  summary: string
-  description: string
+  name: React.ReactNode;
+  summary: string;
+  description: string;
 }
 
 const features: Array<Feature> = [
-    {
-      name: 'Workday Login & Account Issues',
-      summary: 'Get help with logging in, account access, and password recovery.',
-      description:
-        "Frequently, questions arise about workday login issues, including usernames, passwords, and errors during sign-in. If you're encountering difficulties, we’ve got solutions ready to get you back on track.",
-    },
-    {
-      name: 'Benefits & Claims',
-      summary: 'Find answers about benefits, health care, and claims processing.',
-      description:
-        "Questions around benefits like extended health care, tax slips, and EI claims are common. If you’re looking to cancel benefits, change your information, or submit claims, we can walk you through the process.",
-    },
-    {
-      name: 'Vacation, Time-Off, and Pay Issues',
-      summary: 'Learn how to manage your vacation days, casual time off, and payee information.',
-      description:
-        "Whether it’s using vacation days ahead of time or adding hours for casual staff, common queries often center around time-off policies and payroll. We’ll help you navigate these processes, ensuring accuracy and ease.",
-    },  
-]
+  {
+    name: "Workday Login & Account Issues",
+    summary: "Get help with logging in, account access, and password recovery.",
+    description:
+      "Frequently, questions arise about workday login issues, including usernames, passwords, and errors during sign-in. If you're encountering difficulties, we’ve got solutions ready to get you back on track.",
+  },
+  {
+    name: "Benefits & Claims",
+    summary: "Find answers about benefits, health care, and claims processing.",
+    description:
+      "Questions around benefits like extended health care, tax slips, and EI claims are common. If you’re looking to cancel benefits, change your information, or submit claims, we can walk you through the process.",
+  },
+  {
+    name: "Vacation, Time-Off, and Pay Issues",
+    summary:
+      "Learn how to manage your vacation days, casual time off, and payee information.",
+    description:
+      "Whether it’s using vacation days ahead of time or adding hours for casual staff, common queries often center around time-off policies and payroll. We’ll help you navigate these processes, ensuring accuracy and ease.",
+  },
+];
 
 function Feature({
   feature,
   isActive,
   className,
   ...props
-}: React.ComponentPropsWithoutRef<'div'> & {
-  feature: Feature
-  isActive: boolean
+}: React.ComponentPropsWithoutRef<"div"> & {
+  feature: Feature;
+  isActive: boolean;
 }) {
   return (
     <div
-      className={clsx(className, !isActive && 'opacity-75 hover:opacity-100')}
+      className={clsx(className, !isActive && "opacity-75 hover:opacity-100")}
       {...props}
     >
       <h3
         className={clsx(
-          'mt-6 text-sm font-medium',
-          isActive ? 'text-purple-900' : 'text-slate-600',
+          "mt-6 text-sm font-medium",
+          isActive ? "text-purple-900" : "text-slate-600",
         )}
       >
         {feature.name}
@@ -60,7 +61,7 @@ function Feature({
       </p>
       <p className="mt-4 text-sm text-slate-600">{feature.description}</p>
     </div>
-  )
+  );
 }
 
 function FeaturesMobile() {
@@ -72,7 +73,7 @@ function FeaturesMobile() {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function FeaturesDesktop() {
@@ -101,7 +102,7 @@ function FeaturesDesktop() {
         </>
       )}
     </TabGroup>
-  )
+  );
 }
 
 export function SecondaryFeatures() {
@@ -113,16 +114,18 @@ export function SecondaryFeatures() {
     >
       <Container>
         <div className="mx-auto max-w-2xl md:text-center">
-        <h2 className="font-display text-3xl tracking-tight text-slate-900 sm:text-4xl">
-          Common Types of Questions
-        </h2>
-        <p className="mt-4 text-lg tracking-tight text-slate-700">
-          Here are some of the most common questions our HR team receives, aimed at helping you navigate workplace policies and practices with ease.
-        </p>
+          <h2 className="font-display text-3xl tracking-tight text-slate-900 sm:text-4xl">
+            Common Types of Questions
+          </h2>
+          <p className="mt-4 text-lg tracking-tight text-slate-700">
+            Here are some of the most common questions our HR team receives,
+            aimed at helping you navigate workplace policies and practices with
+            ease.
+          </p>
         </div>
         <FeaturesMobile />
         <FeaturesDesktop />
       </Container>
     </section>
-  )
+  );
 }

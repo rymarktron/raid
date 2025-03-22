@@ -1,9 +1,9 @@
-import Link from 'next/link'
+import Link from "next/link";
 
-import { Container } from '@/components/Container'
-import { Logo } from '@/components/Logo'
-import { NavLink } from '@/components/NavLink'
-import Image from 'next/image';
+import { Container } from "@/components/Container";
+import { Logo } from "@/components/Logo";
+import { NavLink } from "@/components/NavLink";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -20,9 +20,12 @@ export function Footer() {
           </nav>
         </div>
         <div className="flex flex-col items-center border-t border-slate-400/10 py-10 sm:flex-row-reverse sm:justify-between">
-
           <div className="flex gap-x-6">
-            <Link href="https://uwaterloo.ca/human-resources/" className="group" aria-label="University of Waterloo">
+            <Link
+              href="https://uwaterloo.ca/human-resources/"
+              className="group"
+              aria-label="University of Waterloo"
+            >
               <Image
                 src="https://uwaterloo.ca/brand/sites/ca.brand/files/styles/body-500px-wide/public/uploads/images/university-of-waterloo-vertical-logo.png?itok=9KCQdLsy"
                 alt="University of Waterloo Logo"
@@ -33,11 +36,11 @@ export function Footer() {
             </Link>
           </div>
           <p className="mt-6 text-sm text-slate-500 sm:mt-0">
-            Copyright &copy; {new Date().getFullYear()} Team RAID, Waterloo Capstone. All rights
-            reserved.
+            Copyright &copy; {new Date().getFullYear()} Team RAID, Waterloo
+            Capstone. All rights reserved.
           </p>
         </div>
       </Container>
     </footer>
-  )
+  );
 }
